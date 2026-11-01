@@ -50,27 +50,34 @@ def test_by_category():
 def test_add_and_list_expenses(client):
     expense = {"description": "Groceries", "amount": 42.9, "category": "food", "date": "2026-10-30"}
 
-    response = client.post("/api/expenses", json=expense)
+    response = client.post("/api/v1/expenses", json=expense)
     assert response.status_code == 201
     assert response.json() == expense
 
-    assert client.get("/api/expenses").json() == [expense]
+    assert client.get("/api/v1/expenses").json() == [expense]
 
 
 def test_rejects_non_positive_amount(client):
     expense = {"description": "Refund", "amount": 0, "category": "food", "date": "2026-10-30"}
 
-    response = client.post("/api/expenses", json=expense)
+    response = client.post("/api/v1/expenses", json=expense)
 
     assert response.status_code == 422
-    assert client.get("/api/expenses").json() == []
+    assert client.get("/api/v1/expenses").json() == []
 
 
 def test_stats_endpoint(client):
-    client.post("/api/expenses", json={"description": "Lunch", "amount": 15, "category": "food", "date": "2026-10-30"})
-    client.post("/api/expenses", json={"description": "Train", "amount": 8.4, "category": "transport", "date": "2026-10-30"})
+    client.post("/api/v1/expenses", json={"description": "Lunch", "amount": 15, "category": "food", "date": "2026-10-30"})
+    client.post("/api/v1/expenses", json={"description": "Train", "amount": 8.4, "category": "transport", "date": "2026-10-30"})
 
-    response = client.get("/api/expenses/stats")
+    response = client.get("/api/v1/expenses/stats")
 
     assert response.status_code == 200
     assert response.json() == {"count": 2, "total": 23.4, "by_category": {"food": 15, "transport": 8.4}}
+
+
+def test_health():
+    response = TestClient(routes.app).get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
