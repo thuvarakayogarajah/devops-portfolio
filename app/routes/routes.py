@@ -1,36 +1,64 @@
-import sys
-import models
+from dataclasses import dataclass
+from datetime import date
+
+from fastapi import FastAPI, APIRouter
+from pydantic import BaseModel, Field
+
+app = FastAPI()
+bp = APIRouter(prefix="/api/v1", tags=["expenses"])
 
 
-from bson import ObjectId
-from fastapi import APIRouter, Depends, Request, Form
-from fastapi.templating import Jinja2Templates
-from app.models.todo import TodoModel
-from dependencies import get_db
-from pymongo.database import Database
-from pymongo import ReturnDocument 
+class Expense(BaseModel):
+    description: str
+    amount: float = Field(gt=0)
+    category: str
+    date: date
 
 
-bp = APIRouter(prefix="/api", tags=["todos"], responses={404: {"description": "Not found"}})
+@dataclass
+class Stats:
+    expenses: list
 
-models.Base.metadata.create_all(bind=models.engine)
+    @property
+    def count(self):
+        return len(self.expenses)
 
+    @property
+    def total(self):
+        return round(sum(expense.amount for expense in self.expenses), 2)
 
-def get_db(): 
-    db = models.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@bp.get("/", response_class=HTMLResponse)
-
-
-@bp.get("/todos/stats", response_model=List[TodoModel])
-async def get_todos(db: Database = Depends(get_db)):
-    tasks = repo().list()
-    total = len(tasks)
-    done = sum(1 for task in tasks if task.done)
-    return jsonify({"total": total, "done": done, "tasks": tasks})
+    @property
+    def by_category(self):
+        totals = {}
+        for expense in self.expenses:
+            totals[expense.category] = round(totals.get(expense.category, 0) + expense.amount, 2)
+        return totals
 
 
+EXPENSES = []  # placeholder until a repository exists
+
+
+@bp.get("/expenses")
+def list_expenses():
+    return EXPENSES
+
+
+@bp.post("/expenses", status_code=201)
+def add_expense(expense: Expense):
+    EXPENSES.append(expense)
+    return expense
+
+
+@bp.get("/expenses/stats")
+def get_stats():
+    stats = Stats(EXPENSES)
+    return {"count": stats.count, "total": stats.total, "by_category": stats.by_category}
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
+# include after all routes are defined, otherwise they are not registered
+app.include_router(bp)
