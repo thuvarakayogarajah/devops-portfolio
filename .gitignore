@@ -24,3 +24,12 @@ Thumbs.db
 # Secrets
 .env
 *.key
+# Tests / Coverage
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Terraform 
+.terraform/
+*.tfstate
+*.tfstate.*
