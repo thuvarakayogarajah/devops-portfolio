@@ -1,26 +1,30 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "devops-portfolio"
+name = "ausgabenverwaltung"
 version = "0.1.0"
-description = "A small command-line program for the CDS212 DevOps module at FH Graubünden."
-readme = "README.md"
-license = { file = "LICENSE" }
-requires-python = ">=3.10"
-dependencies = [
-    "fastapi>=0.162.0",
-    "gunicorn>=26.2.0",
-    "uvicorn>=0.54.0",
-]
+description = "Expense tracker with a full DevOps chain (CDS212 final project)"
+requires-python = ">=3.12"
 
-[project.scripts]
-devops-portfolio = "devops_portfolio.app:main"
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# Put the project root on sys.path so `from app import ...` resolves in the
+# tests. Without this, a bare `pytest` fails with ModuleNotFoundError while
+# `python -m pytest` happens to work — a difference that bites in CI.
+pythonpath = ["."]
 
-[dependency-groups]
-dev = [
-    "httpx>=0.28.1",
-    "pytest>=9.2.0",
-    "pytest-cov>=7.1.0",
-]
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+# The CI pipeline (week 5) fails the build when coverage drops below this.
+fail_under = 80
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E,F = pycodestyle/pyflakes, I = import sorting, B = common bugs,
+# UP = outdated Python idioms
+select = ["E", "F", "I", "B", "UP"]

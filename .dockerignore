@@ -1,12 +1,15 @@
+# Everything that does not belong in the image. A smaller build context means a
+# faster build, and .env never lands in a layer by accident.
 .git
-.gitignore
-.env
+.github
 .venv
-**/__pycache__
-**/tests
+venv
+__pycache__
+*.pyc
 .pytest_cache
+.ruff_cache
 .coverage
-*.egg-info
-.DS_Store
-Dockerfile
-.dockerignore
+htmlcov
+tests
+.env
+*.md
