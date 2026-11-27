@@ -56,6 +56,14 @@ def create_task():
     return jsonify(task.to_dict()), 201
 
 
+@bp.get("/api/tasks/stats")
+def task_stats():
+    tasks = _repo().list()
+    total = len(tasks)
+    done = sum(1 for task in tasks if task.done)
+    return jsonify(total=total, done=done, open=total - done)
+
+
 @bp.get("/api/tasks/<int:task_id>")
 def get_task(task_id: int):
     task = _repo().get(task_id)
