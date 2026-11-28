@@ -1,0 +1,95 @@
+# Model solution for the homework: the pipeline from ci.yml, extended with a
+# dedicated, blocking lint gate that also enforces formatting.
+#
+# Difference to ci.yml: the `lint` job runs BOTH `ruff check .` (linter) and
+# `ruff format --check .` (formatter). Either failure turns the job red, and
+# because `build` declares `needs: [lint, test]`, a red lint gate stops the
+# build. Combined with a branch protection rule on `main`, a pull request with
+# a lint or format violation can no longer be merged.
+#
+# Copy this file to the repository ROOT under .github/workflows/ci.yml
+#
+# On the unmodified template both checks are already green (`ruff check .` and
+# `ruff format --check .`), so the gate is added to clean code. It only turns
+# red once someone introduces a lint or format violation.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ausgabenverwaltung
+
+jobs:
+  lint:
+    name: Lint gate (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ausgabenverwaltung/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      # ruff as a linter: unused imports, bug patterns, import order (E,F,I,B,UP).
+      - name: Lint
+        run: ruff check .
+
+      # ruff as a formatter: fails if any file would be reformatted. Fix locally
+      # with `ruff format .` (or `make fmt`).
+      - name: Format check
+        run: ruff format --check .
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: ausgabenverwaltung/requirements-dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests with coverage gate
+        run: pytest --cov=app --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage report
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: ausgabenverwaltung/coverage.xml
+          if-no-files-found: error
+
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    # The lint gate blocks the build: build waits for lint AND test.
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build container image
+        run: docker build --build-arg APP_VERSION=ci-${{ github.sha }} -t ausgabenverwaltung:ci .
