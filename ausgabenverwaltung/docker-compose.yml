@@ -29,11 +29,13 @@ services:
       POSTGRES_USER: expense-tracker
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: expense-tracker
-    volumes:
-      - db-data:/var/lib/postgresql/data
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U expense-tracker -d expense-tracker"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
+volumes:
+  db-data:
+    driver: local
