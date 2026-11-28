@@ -5,7 +5,7 @@
 FROM python:3.12-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
-WORKDIR /app
+WORKDIR /ausgabenverwaltung
 
 FROM base AS builder
 COPY requirements.txt .
